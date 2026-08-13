@@ -14,7 +14,7 @@ const workflows = readdirSync(workflowDirectory).filter((name) => name.endsWith(
  */
 const REVIEWED_ACTION_PINS = new Map([
   ['actions/checkout', { sha: '3d3c42e5aac5ba805825da76410c181273ba90b1', version: 'v7.0.1' }],
-  ['actions/setup-node', { sha: '53b83947a5a98c8d113130e565377fae1a50d02f', version: 'v6.3.0' }],
+  ['actions/setup-node', { sha: '820762786026740c76f36085b0efc47a31fe5020', version: 'v7.0.0' }],
   ['pnpm/action-setup', { sha: '41ff72655975bd51cab0327fa583b6e92b6d3061', version: 'v4.2.0' }],
   [
     'actions/upload-artifact',
