@@ -90,7 +90,9 @@ test('abolished release and rollback branches grant no label at all', () => {
 });
 
 test('path-only rules use one combined all-files glob', () => {
-  const patterns = [...source.matchAll(/any-glob-to-all-files:\s*\[\s*'([^']+)'\s*\]/g)].map(
+  // Prettier wraps a long enough glob into a multi-line array with a trailing comma, so the
+  // pattern must survive both renderings or a later glob edit would break extraction.
+  const patterns = [...source.matchAll(/any-glob-to-all-files:\s*\[\s*'([^']+)',?\s*\]/g)].map(
     (match) => match[1],
   );
   assert.deepEqual(patterns, [
