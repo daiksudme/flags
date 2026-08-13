@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://daiksud.me/flags/registry/schema.json",
+  "title": "Feature flag descriptor",
+  "description": "The git source of record for a single feature flag. `sync-flagship.mjs` mirrors this file's `state` into Cloudflare Flagship on every merge to main; the Flagship dashboard must never be edited directly (see docs/adr for the drift-detection rationale).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "key", "description", "consumers", "state"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "key": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "description": "Kebab-case flag identifier. Must match the filename: registry/<key>.json."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What the flag controls, in plain language, for anyone reading the registry."
+    },
+    "consumers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "minVersion"],
+        "properties": {
+          "repo": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The daiksudme repository that reads this flag (e.g. \"blog\")."
+          },
+          "minVersion": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+            "description": "The first version of `repo` that can interpret this flag. Consumers must treat the flag as off if their own running version is older than this, even if `state` says on (fail closed, see docs/adr)."
+          }
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["production", "staging", "development"],
+      "properties": {
+        "production": { "type": "boolean" },
+        "staging": { "type": "boolean" },
+        "development": { "type": "boolean" }
+      },
+      "description": "Whether the flag is on in each Flagship environment. Turning `production` on is the Product Release; it does not redeploy any consumer."
+    }
+  }
+}

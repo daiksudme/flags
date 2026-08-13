@@ -1,0 +1,26 @@
+name: Labeler
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  labeler:
+    name: Apply labels
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      # This API-only action reads the base repository configuration. Never
+      # checkout or execute pull request code in this privileged workflow.
+      - name: Apply labels from branch and changed files
+        uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+        with:
+          sync-labels: true

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "key": "example-flag",
+  "description": "Template descriptor kept for documentation; delete once the first real flag is registered.",
+  "consumers": [{ "repo": "blog", "minVersion": "0.1.0" }],
+  "state": {
+    "production": false,
+    "staging": false,
+    "development": false
+  }
+}

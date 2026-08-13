@@ -1,0 +1,63 @@
+# Version-impact labels are derived only from the pull request head branch.
+# Changed-file rules below are intentionally non-versioning classifications.
+'BREAKING CHANGE':
+  - head-branch: ['^breaking-change/(?:feat|perf|fix)/']
+
+DEPRECATED:
+  - head-branch: ['^deprecated/(?:feat|perf|fix)/']
+
+feat:
+  - head-branch: ['^(?:(?:breaking-change|deprecated)/)?feat/']
+
+perf:
+  - head-branch: ['^(?:(?:breaking-change|deprecated)/)?perf/']
+
+fix:
+  - head-branch: ['^(?:(?:breaking-change|deprecated)/)?fix/']
+
+revert:
+  - head-branch: ['^revert/']
+
+docs:
+  - any:
+      - head-branch: ['^docs/']
+      - changed-files:
+          - any-glob-to-all-files:
+              - '{docs/**,**/*.md,**/*.mdx}'
+
+refactor:
+  - head-branch: ['^refactor/']
+
+style:
+  - head-branch: ['^style/']
+
+test:
+  - any:
+      - head-branch: ['^test/']
+      - changed-files:
+          - any-glob-to-all-files:
+              - '{test/**,tests/**,**/*.test.*,**/*.spec.*}'
+
+build:
+  - any:
+      - head-branch: ['^build/']
+      - changed-files:
+          - any-glob-to-all-files:
+              - '{package.json,pnpm-lock.yaml,pnpm-workspace.yaml,tsconfig.json}'
+
+ci:
+  - any:
+      - head-branch: ['^ci/']
+      - changed-files:
+          - any-glob-to-all-files:
+              - '.github/**'
+
+chore:
+  - head-branch: ['^chore/']
+
+# Non-versioning classification: any PR that changes a flag's declared state,
+# regardless of branch name, touched the one thing this repository exists for.
+flags:
+  - changed-files:
+      - any-glob-to-all-files:
+          - 'registry/**'

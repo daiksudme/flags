@@ -1,0 +1,140 @@
+name: Sync
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit to re-sync; defaults to the current main revision
+        required: false
+        type: string
+
+# A single workflow performs the version check, the tag, and the Flagship sync because
+# pushes made with GITHUB_TOKEN never start another workflow run, so a separate tag workflow
+# could not trigger this one without introducing a personal access token.
+concurrency:
+  group: flags-production
+  cancel-in-progress: false
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  disabled:
+    name: Sync gate
+    if: vars.SYNC_ENABLED != 'true'
+    runs-on: ubuntu-slim
+    timeout-minutes: 1
+    steps:
+      - run: echo 'SYNC_ENABLED is not true; no Flagship state was changed.'
+
+  sync:
+    name: Tag and sync
+    if: vars.SYNC_ENABLED == 'true'
+    runs-on: ubuntu-slim
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: write
+      deployments: write
+    env:
+      TARGET_SHA: ${{ inputs.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.sha || github.sha }}
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+        with:
+          run_install: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Verify the revision is contained in main
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$TARGET_SHA" origin/main
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm validate
+      - name: Resolve the tag for this revision
+        id: tag
+        run: |
+          set -euo pipefail
+          resolved=$(node .github/scripts/policy.mjs revision "$TARGET_SHA")
+          printf 'tag=%s\n' "$(jq -r .tag <<<"$resolved")" >> "$GITHUB_OUTPUT"
+          printf 'version=%s\n' "$(jq -r .version <<<"$resolved")" >> "$GITHUB_OUTPUT"
+          printf 'core-changed=%s\n' "$(jq -r .coreChanged <<<"$resolved")" >> "$GITHUB_OUTPUT"
+      # The build identifier is derived from the commit, so a retried run resolves the same
+      # tag name and this step becomes a no-op instead of creating a second tag.
+      - name: Create the tag when it does not exist yet
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          existing=$(git ls-remote --tags origin "refs/tags/$TAG" | cut -f1)
+          if [[ -n "$existing" ]]; then
+            if [[ "$(git rev-parse "${existing}^{commit}")" != "$TARGET_SHA" ]]; then
+              printf 'Tag %s already points elsewhere; refusing to move it.\n' "$TAG" >&2
+              exit 1
+            fi
+            printf 'Tag %s already exists for this revision; continuing the interrupted sync.\n' "$TAG"
+            exit 0
+          fi
+          git tag --annotate "$TAG" --message "$TAG" "$TARGET_SHA"
+          git push origin "refs/tags/$TAG"
+      - name: Sync flag state to Flagship
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_FLAGSHIP_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          FLAGSHIP_APP_ID_PRODUCTION: ${{ vars.FLAGSHIP_APP_ID_PRODUCTION }}
+          FLAGSHIP_APP_ID_STAGING: ${{ vars.FLAGSHIP_APP_ID_STAGING }}
+          FLAGSHIP_APP_ID_DEVELOPMENT: ${{ vars.FLAGSHIP_APP_ID_DEVELOPMENT }}
+          DEPLOY_TAG: ${{ steps.tag.outputs.tag }}
+          GITHUB_SHA: ${{ inputs.sha || github.sha }}
+          SYNC_RECEIPT_PATH: ${{ runner.temp }}/sync-receipt.json
+          WRANGLER_SEND_METRICS: 'false'
+        run: node .github/scripts/sync-flagship.mjs
+      - name: Preserve the sync receipt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sync-${{ steps.tag.outputs.tag }}
+          path: ${{ runner.temp }}/sync-receipt.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Record the successful Flagship sync
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_SHA: ${{ inputs.sha || github.sha }}
+          SYNC_RECEIPT_PATH: ${{ runner.temp }}/sync-receipt.json
+        run: node .github/scripts/record-deployment.mjs
+      # A build identifier marks a re-sync of unchanged flag state, so it never becomes a
+      # GitHub Release. A GitHub Release here records that the registry itself changed, not
+      # that a feature became visible; Product Release is the sync step above.
+      - name: Publish the version record
+        if: steps.tag.outputs.core-changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            printf 'GitHub Release %s already exists; continuing the interrupted sync.\n' "$TAG"
+            exit 0
+          fi
+          gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
+      - name: Confirm the latest tag matches the synced state and Flagship matches the registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_FLAGSHIP_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          FLAGSHIP_APP_ID_PRODUCTION: ${{ vars.FLAGSHIP_APP_ID_PRODUCTION }}
+          FLAGSHIP_APP_ID_STAGING: ${{ vars.FLAGSHIP_APP_ID_STAGING }}
+          FLAGSHIP_APP_ID_DEVELOPMENT: ${{ vars.FLAGSHIP_APP_ID_DEVELOPMENT }}
+        run: node .github/scripts/drift-check.mjs
