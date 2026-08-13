@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.astro/
+.rumdl_cache/
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+*.log
+*.tsbuildinfo

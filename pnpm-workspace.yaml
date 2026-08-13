@@ -1,0 +1,7 @@
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
+
+# Keep optional lint peers explicit rather than installing unused peer packages.
+autoInstallPeers: false

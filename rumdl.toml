@@ -1,0 +1,23 @@
+[global]
+# Japanese prose has no word-space boundaries; manual wrapping can insert rendered spaces.
+disable = ["MD013"]
+# MD060 is opt-in; compact avoids alignment-only churn when a table cell changes.
+extend-enable = ["MD060"]
+include = ["**/*.md", "**/*.mdx"]
+respect-gitignore = true
+flavor = "gfm"
+
+[per-file-flavor]
+# Parse JSX components as MDX so MD033 can remain enabled.
+"**/*.mdx" = "mdx"
+
+[MD025]
+# Frontmatter metadata is not a document heading.
+front-matter-title = ""
+
+[MD036]
+# Japanese punctuation and parenthesized source attributions are prose, not headings.
+punctuation = ".,;:!?。，；：！？）"
+
+[MD060]
+style = "compact"

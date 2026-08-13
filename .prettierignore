@@ -1,0 +1,26 @@
+node_modules/
+dist/
+.astro/
+.rumdl_cache/
+pnpm-lock.yaml
+
+# Formatted by Biome
+**/*.json
+**/*.jsonc
+**/*.js
+**/*.ts
+**/*.tsx
+**/*.mts
+**/*.cts
+**/*.jsx
+**/*.mjs
+**/*.cjs
+**/*.css
+**/*.code-snippets
+
+# Formatted by rumdl
+**/*.md
+**/*.mdx
+
+# Assets are generated or maintained separately from source formatting.
+**/*.svg

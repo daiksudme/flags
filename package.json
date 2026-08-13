@@ -1,0 +1,43 @@
+{
+  "name": "@daiksudme/flags",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Feature flag registry of record for the daiksudme services",
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=24.16.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "lint": "pnpm run lint:biome && pnpm run lint:eslint && pnpm run lint:rumdl && pnpm run lint:knip",
+    "lint:biome": "biome lint",
+    "lint:commit": "commitlint",
+    "lint:eslint": "eslint . --cache --cache-location node_modules/.cache/eslint --concurrency=auto --no-error-on-unmatched-pattern",
+    "lint:knip": "cross-env KNIP_DISABLE_RAW_TRANSFER=1 knip",
+    "lint:rumdl": "rumdl check .",
+    "lint:staged": "lint-staged",
+    "policy:check": "node .github/scripts/policy.mjs repository",
+    "policy:test": "node --test .github/scripts/*.test.mjs",
+    "format": "biome format --write && prettier --write \"**/*\" --ignore-unknown --cache && rumdl fmt .",
+    "format:check": "biome format && prettier --check \"**/*\" --ignore-unknown --cache && rumdl fmt --check .",
+    "validate": "pnpm run format:check && pnpm run lint && pnpm run policy:check && pnpm run policy:test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.7",
+    "@commitlint/cli": "21.2.1",
+    "@commitlint/config-conventional": "21.2.0",
+    "@types/node": "24.13.3",
+    "cross-env": "10.1.0",
+    "eslint": "10.8.1",
+    "husky": "9.1.7",
+    "knip": "6.32.1",
+    "lint-staged": "17.3.0",
+    "prettier": "3.9.6",
+    "rumdl": "0.2.53",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.67.0",
+    "wrangler": "4.107.0"
+  }
+}
