@@ -1,5 +1,6 @@
-# Version-impact labels are derived only from the pull request head branch.
-# Changed-file rules below are intentionally non-versioning classifications.
+# Version-affecting labels are derived only from the pull request head branch, so a path
+# match can never manufacture a SemVer impact the author did not choose. Product Release is
+# decided in this repository's registry, so no branch name gates a release.
 'BREAKING CHANGE':
   - head-branch: ['^breaking-change/(?:feat|perf|fix)/']
 
@@ -18,12 +19,19 @@ fix:
 revert:
   - head-branch: ['^revert/']
 
+# Non-versioning classification: any PR that changes a flag's declared state, regardless of
+# branch name, touched the one thing this repository exists for.
+flags:
+  - changed-files:
+      - any-glob-to-all-files: ['registry/**']
+
+# These labels never affect the version. A path rule uses one combined all-files glob, so a
+# code change with an incidental docs or test edit is not reclassified.
 docs:
   - any:
       - head-branch: ['^docs/']
       - changed-files:
-          - any-glob-to-all-files:
-              - '{docs/**,**/*.md,**/*.mdx}'
+          - any-glob-to-all-files: ['{docs/**,**/*.md,**/*.mdx}']
 
 refactor:
   - head-branch: ['^refactor/']
@@ -35,29 +43,20 @@ test:
   - any:
       - head-branch: ['^test/']
       - changed-files:
-          - any-glob-to-all-files:
-              - '{test/**,tests/**,**/*.test.*,**/*.spec.*}'
+          - any-glob-to-all-files: ['{test/**,tests/**,**/*.test.*,**/*.spec.*}']
 
 build:
   - any:
       - head-branch: ['^build/']
       - changed-files:
           - any-glob-to-all-files:
-              - '{package.json,pnpm-lock.yaml,pnpm-workspace.yaml,tsconfig.json}'
+              ['{package.json,pnpm-lock.yaml,pnpm-workspace.yaml,tsconfig.json}']
 
 ci:
   - any:
       - head-branch: ['^ci/']
       - changed-files:
-          - any-glob-to-all-files:
-              - '.github/**'
+          - any-glob-to-all-files: ['.github/{workflows/**,scripts/**,*.yml}']
 
 chore:
   - head-branch: ['^chore/']
-
-# Non-versioning classification: any PR that changes a flag's declared state,
-# regardless of branch name, touched the one thing this repository exists for.
-flags:
-  - changed-files:
-      - any-glob-to-all-files:
-          - 'registry/**'
